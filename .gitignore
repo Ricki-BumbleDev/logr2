@@ -1,0 +1,9 @@
+node_modules/
+build/
+
+.env
+GeoLite2-City.mmdb
+
+.DS_Store
+desktop.ini
+Thumbs.db

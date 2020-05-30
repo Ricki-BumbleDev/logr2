@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>Logr Demo | About</title>
+  <script src="/logr.js"></script>
+  <script>
+    const logr = new Logr();
+    logr.log('VIEW_PAGE');
+  </script>
+</head>
+
+<body>
+  <button onclick="logr.log('CLICK');">CLICK ME</button>
+  <button onclick="logr.log('ADD_TO_CART', { sku: '489205', quantity: 2 });">ADD TO CART</button>
+  <a href="home.html">Go to home page</a>
+</body>
+
+</html>
