@@ -7,13 +7,13 @@ Simple exampe of a selfmade GA-like tracking setup
 ### Install dependencies
 
 ```sh
-npm i
+yarn install
 ```
 
 ### Run in dev mode
 
 ```sh
-npm run dev
+yarn dev
 ```
 
 ## Enabling Geo IP lookup
@@ -25,5 +25,5 @@ cp sample.env .env
 Get a free Maxmind GeoLite2 license key and insert it into the `.env` file
 
 ```sh
-npm run download-geoip-db
+yarn download-geoip-db
 ```

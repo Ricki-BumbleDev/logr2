@@ -1,28 +1,60 @@
 import cookieParser from 'cookie-parser';
 import express, { Request } from 'express';
 import { nanoid } from 'nanoid';
-import analyze, { AnalyzableReqParams } from './analysis/index';
+import analyze, { AnalyzableReqParams, ReqAnalysisResult } from './analysis/index';
+import { getCookieName, getSessionId } from './cookieName';
+import getFingerprint from './getFingerprint';
+
+const DISABLE_COOKIES = true;
 
 const app = express();
 
-const superCheapDb: any[] = [];
+type Event = {
+  name: string;
+} & any;
+
+type Session = {
+  userId?: string;
+  sessionId: string;
+  fingerprint: string;
+  events: Event[];
+  createdAt: Date;
+} & ReqAnalysisResult;
+
+const superCheapDb: Session[] = [];
 
 const getParamsFromReq = (req: Request): AnalyzableReqParams => ({
   referer: req.get('Referrer')!,
-  ip: (req.headers['x-forwarded-for'] as string) ?? req.connection.remoteAddress,
-  userAgent: req.headers['user-agent']!
+  ip: (req.headers['x-forwarded-for'] as string) ?? req.socket.remoteAddress,
+  userAgent: req.headers['user-agent']!,
+  acceptLanguage: req.headers['accept-language']!
 });
 
 app.post('/api/v1/tracking', cookieParser(), express.json({ type: 'text/plain' }), async (req, res) => {
-  let sessionId = req.cookies.sessionId;
-  if (!sessionId) {
-    sessionId = nanoid();
-    res.cookie('sessionId', sessionId);
-    console.log(`NEW SESSION ${sessionId}`);
+  const events = req.body;
+  const analyzableReqParams = getParamsFromReq(req);
+  let session: Session | undefined;
+  let sessionId: string | undefined;
+  let fingerprint: string;
+  if (!DISABLE_COOKIES) {
+    sessionId = getSessionId(req.cookies);
   }
-  const requestAnalysisResult = await analyze(getParamsFromReq(req));
-  superCheapDb.push(...req.body.map((event: any) => ({ ...event, sessionId, ...requestAnalysisResult })));
-  console.log(`LOGGED ${req.body.length} EVENTS`);
+  session = sessionId ? superCheapDb.find(session => session.sessionId === sessionId) : undefined;
+  if (!session) {
+    const { ip, userAgent, acceptLanguage } = analyzableReqParams;
+    fingerprint = getFingerprint(ip, userAgent, acceptLanguage);
+    session = superCheapDb.find(session => session.fingerprint === fingerprint);
+    if (!session) {
+      sessionId = nanoid();
+      if (!DISABLE_COOKIES) {
+        res.cookie(getCookieName(), sessionId);
+      }
+      const reqAnalysisResult = await analyze(analyzableReqParams);
+      session = { sessionId, fingerprint, events: [], createdAt: new Date(), ...reqAnalysisResult };
+      superCheapDb.push(session);
+    }
+  }
+  session.events.push(...events);
   res.sendStatus(200);
 });
 

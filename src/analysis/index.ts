@@ -1,24 +1,54 @@
-import parseUa from './parse-ua';
+import findIsp from './findIsp';
 import locate from './locate';
-import findIsp from './find-isp';
+import parseUa from './parseUa';
 
-export interface AnalyzableReqParams {
-  userAgent: string;
+export type AnalyzableReqParams = {
   ip: string;
+  userAgent: string;
+  acceptLanguage: string;
   referer: string;
-}
+};
 
-const analyze = async (params: AnalyzableReqParams) => {
-  const userAgentInfo = parseUa(params.userAgent);
-  const [locationInfo, ispInfo] = await Promise.all([locate(params.ip), findIsp(params.ip)]);
+export type ReqAnalysisResult = {
+  ip: string;
+  hostnames: string[];
+  provider?: string;
+  browser: {
+    name?: string;
+    version?: string;
+  };
+  os: {
+    name?: string;
+    version?: string;
+  };
+  device: {
+    model?: string;
+    type?: string;
+    vendor?: string;
+  };
+  fullUserAgent: string;
+  location: {
+    continent?: 'AF' | 'AN' | 'AS' | 'EU' | 'NA' | 'OC' | 'SA';
+    country?: string;
+    region?: string;
+    city?: string;
+  };
+  acceptLanguage: string;
+  referer: string;
+};
+
+const analyze = async ({ ip, userAgent, acceptLanguage, referer }: AnalyzableReqParams): Promise<ReqAnalysisResult> => {
+  const userAgentInfo = parseUa(userAgent);
+  const [locationInfo, ispInfo] = await Promise.all([locate(ip), findIsp(ip)]);
   return {
-    referer: params.referer,
-    ip: params.ip,
+    ip,
     hostnames: ispInfo.hostnames,
     provider: ispInfo.isp,
     ...locationInfo,
-    fullUserAgent: params.userAgent,
-    ...userAgentInfo
+    fullUserAgent: userAgent,
+    ...userAgentInfo,
+    acceptLanguage,
+    referer
   };
 };
 
